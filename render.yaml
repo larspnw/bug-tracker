@@ -30,7 +30,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://bug-tracker-backend.onrender.com
+        value: https://bug-tracker-backend-b3bv.onrender.com
     routes:
       - type: rewrite
         source: /*
