@@ -129,7 +129,7 @@ function BugDetail() {
 
         {bug.screenshots?.length > 0 && (
           <div className="mb-6">
-            <h3 className="font-medium mb-2">Screenshots</h3>
+            <h3 className="font-medium mb-2">Screenshots ({bug.screenshots.length})</h3>
             <div className="flex flex-wrap gap-4">
               {bug.screenshots.map(screenshot => (
                 <a 
@@ -138,8 +138,18 @@ function BugDetail() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block"
+                  title={screenshot.original_filename}
                 >
-                  <div className="w-32 h-32 bg-gray-100 rounded flex items-center justify-center border hover:border-blue-500">
+                  <img
+                    src={`${API_URL}/api/bugs/${id}/screenshots/${screenshot.filename}`}
+                    alt={screenshot.original_filename}
+                    className="w-32 h-32 object-cover rounded border hover:border-blue-500"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.nextSibling.style.display = 'flex'
+                    }}
+                  />
+                  <div className="w-32 h-32 bg-gray-100 rounded flex items-center justify-center border hidden">
                     <span className="text-xs text-gray-500 text-center px-2">
                       {screenshot.original_filename}
                     </span>

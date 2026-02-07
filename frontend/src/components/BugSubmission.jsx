@@ -147,13 +147,30 @@ function BugSubmission() {
             <p className="text-sm text-gray-500">Max 5 files, 5MB each (PNG, JPG)</p>
           </div>
           {files.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm font-medium">Selected files:</p>
-              <ul className="text-sm text-gray-600">
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">Selected files ({files.length}):</p>
+              <div className="flex flex-wrap gap-3">
                 {files.map((file, i) => (
-                  <li key={i}>{file.name}</li>
+                  <div key={i} className="relative">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="w-20 h-20 object-cover rounded border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                      title="Remove"
+                    >
+                      ×
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1 max-w-[80px] truncate" title={file.name}>
+                      {file.name}
+                    </p>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
