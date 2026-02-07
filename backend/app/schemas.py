@@ -29,7 +29,7 @@ class ProductResponse(ProductBase):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Status Schemas
 class StatusBase(BaseModel):
@@ -50,7 +50,7 @@ class StatusResponse(StatusBase):
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class StatusOrder(BaseModel):
     id: str
@@ -65,7 +65,7 @@ class ScreenshotResponse(BaseModel):
     uploaded_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Bug Schemas
 class BugBase(BaseModel):
@@ -96,7 +96,7 @@ class BugResponse(BaseModel):
     updated_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class BugDetailResponse(BaseModel):
     id: str
@@ -114,7 +114,7 @@ class BugDetailResponse(BaseModel):
     screenshots: List[ScreenshotResponse]
     
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class BugListResponse(BaseModel):
     bugs: List[BugDetailResponse]
