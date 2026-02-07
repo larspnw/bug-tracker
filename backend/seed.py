@@ -8,11 +8,11 @@ def seed_database():
         # Seed statuses if none exist
         if db.query(models.Status).count() == 0:
             statuses = [
-                models.Status(name="New", color="#3b82f6", order=0),
-                models.Status(name="In Progress", color="#eab308", order=1),
-                models.Status(name="Resolved", color="#22c55e", order=2),
-                models.Status(name="Closed", color="#6b7280", order=3),
-                models.Status(name="Won't Fix", color="#ef4444", order=4),
+                models.Status(name="OPEN", color="#3b82f6", order=0),
+                models.Status(name="CLOSED", color="#6b7280", order=1),
+                models.Status(name="RESOLVED", color="#22c55e", order=2),
+                models.Status(name="WON'T FIX", color="#ef4444", order=3),
+                models.Status(name="DUPLICATE", color="#a855f7", order=4),
             ]
             for status in statuses:
                 db.add(status)
