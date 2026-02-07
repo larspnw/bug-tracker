@@ -16,7 +16,7 @@ services:
       - key: ADMIN_PASSWORD
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://bug-tracker-frontend.onrender.com
+        value: https://bug-tracker-frontend-t6w7.onrender.com
     disk:
       name: uploads
       mountPath: /uploads
