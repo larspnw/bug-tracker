@@ -24,7 +24,7 @@ function AdminPanel() {
 
   const { data: statuses, isLoading: statusesLoading } = useQuery(
     ['admin-statuses', isAuthenticated],
-    () => axios.get(`${API_URL}/api/admin/statuses`).then(res => res.data),
+    () => axios.get(`${API_URL}/api/statuses`).then(res => res.data),
     { enabled: isAuthenticated }
   )
 
