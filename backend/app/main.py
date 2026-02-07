@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -36,9 +36,11 @@ def get_db():
         db.close()
 
 # Admin authentication helper
-def verify_admin(password: str):
-    if password != ADMIN_PASSWORD:
-        raise HTTPException(status_code=403, detail="Invalid admin password")
+def verify_admin(password: Optional[str] = None, x_admin_password: Optional[str] = Header(None)):
+    pwd = password or x_admin_password
+    if not pwd or pwd != ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="Invalid or missing password")
+    return pwd
 
 # File storage setup
 UPLOAD_DIR = Path("/uploads") if os.path.exists("/uploads") else Path("./uploads")
@@ -48,6 +50,14 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 def read_root():
     return {"message": "Bug Tracker API", "version": "1.0.0"}
 
+# Auth endpoint
+@app.post("/api/auth/validate")
+def validate_auth(password: str = Form(...)):
+    """Validate admin password and return token"""
+    if password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="Invalid password")
+    return {"valid": True, "token": "authenticated"}
+
 # Products Endpoints
 @app.get("/api/products", response_model=List[schemas.ProductResponse])
 def get_products(db: Session = Depends(get_db)):
@@ -56,16 +66,25 @@ def get_products(db: Session = Depends(get_db)):
     return products
 
 @app.get("/api/admin/products", response_model=List[schemas.ProductResponse])
-def get_all_products(admin_password: str, db: Session = Depends(get_db)):
+def get_all_products(
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Get all products including inactive (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     products = db.query(models.Product).order_by(models.Product.name).all()
     return products
 
 @app.post("/api/admin/products", response_model=schemas.ProductResponse)
-def create_product(product: schemas.ProductCreate, admin_password: str, db: Session = Depends(get_db)):
+def create_product(
+    product: schemas.ProductCreate,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Create new product (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     db_product = models.Product(**product.dict())
     db.add(db_product)
     db.commit()
@@ -73,9 +92,15 @@ def create_product(product: schemas.ProductCreate, admin_password: str, db: Sess
     return db_product
 
 @app.patch("/api/admin/products/{product_id}", response_model=schemas.ProductResponse)
-def update_product(product_id: str, product: schemas.ProductUpdate, admin_password: str, db: Session = Depends(get_db)):
+def update_product(
+    product_id: str,
+    product: schemas.ProductUpdate,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Update product (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -88,9 +113,14 @@ def update_product(product_id: str, product: schemas.ProductUpdate, admin_passwo
     return db_product
 
 @app.delete("/api/admin/products/{product_id}")
-def delete_product(product_id: str, admin_password: str, db: Session = Depends(get_db)):
+def delete_product(
+    product_id: str,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Delete product if no bugs reference it (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -112,9 +142,14 @@ def get_statuses(db: Session = Depends(get_db)):
     return statuses
 
 @app.post("/api/admin/statuses", response_model=schemas.StatusResponse)
-def create_status(status: schemas.StatusCreate, admin_password: str, db: Session = Depends(get_db)):
+def create_status(
+    status: schemas.StatusCreate,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Create new status (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     
     # Set order to end if not provided
     if status.order is None:
@@ -128,9 +163,15 @@ def create_status(status: schemas.StatusCreate, admin_password: str, db: Session
     return db_status
 
 @app.patch("/api/admin/statuses/{status_id}", response_model=schemas.StatusResponse)
-def update_status(status_id: str, status: schemas.StatusUpdate, admin_password: str, db: Session = Depends(get_db)):
+def update_status(
+    status_id: str,
+    status: schemas.StatusUpdate,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Update status (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     db_status = db.query(models.Status).filter(models.Status.id == status_id).first()
     if not db_status:
         raise HTTPException(status_code=404, detail="Status not found")
@@ -143,9 +184,14 @@ def update_status(status_id: str, status: schemas.StatusUpdate, admin_password: 
     return db_status
 
 @app.delete("/api/admin/statuses/{status_id}")
-def delete_status(status_id: str, admin_password: str, db: Session = Depends(get_db)):
+def delete_status(
+    status_id: str,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Delete status if no bugs use it (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     db_status = db.query(models.Status).filter(models.Status.id == status_id).first()
     if not db_status:
         raise HTTPException(status_code=404, detail="Status not found")
@@ -160,9 +206,14 @@ def delete_status(status_id: str, admin_password: str, db: Session = Depends(get
     return {"message": "Status deleted"}
 
 @app.patch("/api/admin/statuses/reorder")
-def reorder_statuses(orders: List[schemas.StatusOrder], admin_password: str, db: Session = Depends(get_db)):
+def reorder_statuses(
+    orders: List[schemas.StatusOrder],
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Reorder statuses (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     
     for item in orders:
         db_status = db.query(models.Status).filter(models.Status.id == item.id).first()
@@ -239,7 +290,7 @@ async def create_bug(
     if severity not in ["Low", "Medium", "High", "Critical"]:
         raise HTTPException(status_code=400, detail="Invalid severity")
     
-    # Get default "New" status
+    # Get default "OPEN" status (lowest order)
     default_status = db.query(models.Status).order_by(models.Status.order).first()
     if not default_status:
         raise HTTPException(status_code=500, detail="No statuses configured")
@@ -298,11 +349,12 @@ async def create_bug(
 def update_bug(
     bug_id: str,
     bug_update: schemas.BugUpdate,
-    admin_password: str,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """Update bug status/severity (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     
     bug = db.query(models.Bug).filter(models.Bug.id == bug_id).first()
     if not bug:
@@ -316,9 +368,14 @@ def update_bug(
     return bug
 
 @app.delete("/api/bugs/{bug_id}")
-def delete_bug(bug_id: str, admin_password: str, db: Session = Depends(get_db)):
+def delete_bug(
+    bug_id: str,
+    password: Optional[str] = None,
+    x_admin_password: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Delete bug and its screenshots (admin only)"""
-    verify_admin(admin_password)
+    verify_admin(password, x_admin_password)
     
     bug = db.query(models.Bug).filter(models.Bug.id == bug_id).first()
     if not bug:

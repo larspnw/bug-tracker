@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
@@ -9,8 +9,24 @@ function BugDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [adminPassword, setAdminPassword] = useState('')
   const [showAdminControls, setShowAdminControls] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState('')
+
+  // Check for stored password on mount
+  useEffect(() => {
+    const storedPassword = localStorage.getItem('bugtracker_password')
+    if (storedPassword) {
+      setPassword(storedPassword)
+      setIsAuthenticated(true)
+    }
+  }, [])
+
+  // Create axios instance with auth header
+  const api = axios.create({
+    baseURL: API_URL,
+    headers: isAuthenticated ? { 'X-Admin-Password': password } : {}
+  })
 
   const { data: bug, isLoading } = useQuery(['bug', id], () =>
     axios.get(`${API_URL}/api/bugs/${id}`).then(res => res.data)
@@ -21,7 +37,7 @@ function BugDetail() {
   )
 
   const updateMutation = useMutation(
-    (data) => axios.patch(`${API_URL}/api/bugs/${id}?admin_password=${adminPassword}`, data),
+    (data) => api.patch(`/api/bugs/${id}`, data),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['bug', id])
@@ -32,7 +48,7 @@ function BugDetail() {
   )
 
   const deleteMutation = useMutation(
-    () => axios.delete(`${API_URL}/api/bugs/${id}?admin_password=${adminPassword}`),
+    () => api.delete(`/api/bugs/${id}`),
     {
       onSuccess: () => {
         navigate('/bugs')
@@ -145,56 +161,59 @@ function BugDetail() {
 
           {showAdminControls && (
             <div className="mt-4 p-4 bg-gray-50 rounded">
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Admin Password</label>
-                <input
-                  type="password"
-                  className="border rounded px-3 py-2"
-                  value={adminPassword}
-                  onChange={e => setAdminPassword(e.target.value)}
-                  placeholder="Enter admin password"
-                />
-              </div>
-
-              <div className="flex gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Change Status</label>
-                  <select
-                    className="border rounded px-3 py-2"
-                    onChange={e => updateMutation.mutate({ status_id: e.target.value })}
-                    value={bug.status_id}
+              {!isAuthenticated ? (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Please login from Admin Panel first</p>
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="text-blue-600 hover:underline text-sm"
                   >
-                    {statuses?.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
+                    Go to Admin Panel →
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <div className="flex gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Change Status</label>
+                      <select
+                        className="border rounded px-3 py-2"
+                        onChange={e => updateMutation.mutate({ status_id: e.target.value })}
+                        value={bug.status_id}
+                      >
+                        {statuses?.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Change Severity</label>
-                  <select
-                    className="border rounded px-3 py-2"
-                    onChange={e => updateMutation.mutate({ severity: e.target.value })}
-                    value={bug.severity}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Change Severity</label>
+                      <select
+                        className="border rounded px-3 py-2"
+                        onChange={e => updateMutation.mutate({ severity: e.target.value })}
+                        value={bug.severity}
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this bug?')) {
+                        deleteMutation.mutate()
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                   >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (confirm('Are you sure you want to delete this bug?')) {
-                    deleteMutation.mutate()
-                  }
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Delete Bug
-              </button>
+                    Delete Bug
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
