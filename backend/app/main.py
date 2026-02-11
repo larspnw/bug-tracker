@@ -48,7 +48,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 @app.get("/")
 def read_root():
-    return {"message": "Bug Tracker API", "version": "1.0.0"}
+    return {"message": "Bug Tracker API", "version": "1.1.0"}
 
 # Auth endpoint
 @app.post("/api/auth/validate")

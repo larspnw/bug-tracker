@@ -1,32 +1,20 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from 'react-query'
 import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 function BugDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
+  const { isAuthenticated, api, setShowLoginModal } = useAuth()
   const [showAdminControls, setShowAdminControls] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [password, setPassword] = useState('')
 
-  // Check for stored password on mount
-  useEffect(() => {
-    const storedPassword = localStorage.getItem('bugtracker_password')
-    if (storedPassword) {
-      setPassword(storedPassword)
-      setIsAuthenticated(true)
-    }
-  }, [])
-
-  // Create axios instance with auth header
-  const api = axios.create({
-    baseURL: API_URL,
-    headers: isAuthenticated ? { 'X-Admin-Password': password } : {}
-  })
+  const returnUrl = location.state?.returnUrl || '/bugs'
 
   const { data: bug, isLoading } = useQuery(['bug', id], () =>
     axios.get(`${API_URL}/api/bugs/${id}`).then(res => res.data)
@@ -43,7 +31,13 @@ function BugDetail() {
         queryClient.invalidateQueries(['bug', id])
         alert('Bug updated!')
       },
-      onError: (err) => alert(err.response?.data?.detail || 'Update failed')
+      onError: (err) => {
+        if (err.response?.status === 403) {
+          setShowLoginModal(true)
+        } else {
+          alert(err.response?.data?.detail || 'Update failed')
+        }
+      }
     }
   )
 
@@ -53,7 +47,13 @@ function BugDetail() {
       onSuccess: () => {
         navigate('/bugs')
       },
-      onError: (err) => alert(err.response?.data?.detail || 'Delete failed')
+      onError: (err) => {
+        if (err.response?.status === 403) {
+          setShowLoginModal(true)
+        } else {
+          alert(err.response?.data?.detail || 'Delete failed')
+        }
+      }
     }
   )
 
@@ -73,10 +73,10 @@ function BugDetail() {
   return (
     <div className="max-w-4xl mx-auto">
       <button
-        onClick={() => navigate('/bugs')}
+        onClick={() => navigate(returnUrl)}
         className="mb-4 text-blue-600 hover:underline"
       >
-        ← Back to Bug List
+        &larr; Back to Bug List
       </button>
 
       <div className="bg-white rounded shadow p-6">
@@ -89,11 +89,11 @@ function BugDetail() {
             <span className={`px-3 py-1 rounded text-sm font-medium ${getSeverityColor(bug.severity)}`}>
               {bug.severity}
             </span>
-            <span 
+            <span
               className="px-3 py-1 rounded text-sm font-medium"
-              style={{ 
+              style={{
                 backgroundColor: bug.status?.color + '20',
-                color: bug.status?.color 
+                color: bug.status?.color
               }}
             >
               {bug.status?.name}
@@ -132,7 +132,7 @@ function BugDetail() {
             <h3 className="font-medium mb-2">Screenshots ({bug.screenshots.length})</h3>
             <div className="flex flex-wrap gap-4">
               {bug.screenshots.map(screenshot => (
-                <a 
+                <a
                   key={screenshot.id}
                   href={`${API_URL}/api/bugs/${id}/screenshots/${screenshot.filename}`}
                   target="_blank"
@@ -173,12 +173,12 @@ function BugDetail() {
             <div className="mt-4 p-4 bg-gray-50 rounded">
               {!isAuthenticated ? (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Please login from Admin Panel first</p>
+                  <p className="text-sm text-gray-600 mb-2">Please log in to access admin controls.</p>
                   <button
-                    onClick={() => navigate('/admin')}
+                    onClick={() => setShowLoginModal(true)}
                     className="text-blue-600 hover:underline text-sm"
                   >
-                    Go to Admin Panel →
+                    Login
                   </button>
                 </div>
               ) : (
