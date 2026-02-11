@@ -35,7 +35,7 @@ function App() {
         </Routes>
       </main>
 
-      <footer className="text-center text-xs text-gray-400 py-4">v1.1.0</footer>
+      <footer className="text-center text-xs text-gray-400 py-4">v1.1.1</footer>
     </div>
   )
 }
